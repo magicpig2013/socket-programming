@@ -15,6 +15,7 @@ public class MyClient {
     private DataOutputStream out;
 
     private Integer flag = 0;
+    private boolean connectionEnd = false;
 
     private String inputLine = "";
     private Integer wordLength = 0;
@@ -28,27 +29,36 @@ public class MyClient {
     }
 
     public void sendMessage(String msg) throws IOException {
-        out.writeInt(msg.length());
-        out.writeUTF(msg);
+        out.writeUTF(msg.length()+ msg);
     }
 
     public void readMessage() throws IOException {
-        flag = in.readInt();
-        System.out.println(flag);
-        if (flag != 0) {
-            inputLine = in.readUTF();
-            System.out.println("Server: " + inputLine);
+        String readMsg = in.readUTF();
+        if (readMsg.charAt(0) == '~') {
+            flag = 0;
         } else {
-            wordLength = in.readInt();
-            numGuess = in.readInt();
-            inputLine = in.readUTF();
+            flag = (int)readMsg.charAt(0);
+        }
+        System.out.println("flag:" + flag);
+        if (flag != 0) {
+            inputLine = readMsg.substring(1);
+            System.out.println("Server: " + inputLine);
+            if (flag == 8 || flag ==9) {
+                connectionEnd = true;
+            }
+        } else {
+            wordLength = Character.getNumericValue(readMsg.charAt(1));
+            numGuess = Character.getNumericValue(readMsg.charAt(2));
+            inputLine = readMsg.substring(3);
             System.out.println("wordlength: " + wordLength);
             System.out.println("numGuess: " + numGuess);
             System.out.println("Server: " + inputLine.substring(0,wordLength));
+            System.out.println("Incorrect guess: " + inputLine.substring(wordLength));
         }
     }
 
     public void stopConnection() throws IOException {
+        System.out.println("Now is in the end");
         in.close();
         out.close();
         clientSocket.close();
@@ -57,11 +67,16 @@ public class MyClient {
     static public void main(String[] args) throws IOException, InterruptedException {
         MyClient client = new MyClient();
         client.startConnection(IP_ADDR, PORT);
-        while (client.flag != -1) {
+        client.out.writeUTF("0");
+        while (!client.connectionEnd) {
             client.readMessage();
+            if (client.connectionEnd) {
+                break;
+            }
             String myanswer = new BufferedReader(new InputStreamReader(System.in)).readLine();
             client.sendMessage(myanswer);
         }
+        client.stopConnection();
         // Thread.sleep(30000);
         // response = client.sendMessage(".");
         // System.out.println("Response: " + response);
