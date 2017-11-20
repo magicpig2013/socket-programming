@@ -99,6 +99,7 @@ public class MyServer {
             for (int i = 0; i < answer.length(); i++) {
                 result += '_';
             }
+            sendResult(result);
         }
 
         public void gameEnd() throws IOException {

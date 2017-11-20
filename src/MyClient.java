@@ -39,21 +39,33 @@ public class MyClient {
         } else {
             flag = (int)readMsg.charAt(0);
         }
-        System.out.println("flag:" + flag);
+        // System.out.println("flag:" + flag);
         if (flag != 0) {
             inputLine = readMsg.substring(1);
             System.out.println("Server: " + inputLine);
             if (flag == 8 || flag ==9) {
                 connectionEnd = true;
+            } if (flag == 29) {
+                readMessage();
             }
         } else {
             wordLength = Character.getNumericValue(readMsg.charAt(1));
             numGuess = Character.getNumericValue(readMsg.charAt(2));
             inputLine = readMsg.substring(3);
-            System.out.println("wordlength: " + wordLength);
-            System.out.println("numGuess: " + numGuess);
-            System.out.println("Server: " + inputLine.substring(0,wordLength));
-            System.out.println("Incorrect guess: " + inputLine.substring(wordLength));
+            // System.out.println("wordlength: " + wordLength);
+            // System.out.println("numGuess: " + numGuess);
+            String currentanswer = "";
+            for (int i = 0; i < wordLength; i++) {
+                if (i != wordLength) {
+                    currentanswer += inputLine.charAt(i);
+                    currentanswer += " ";
+                } else {
+                    currentanswer += inputLine.charAt(i);
+                }
+            }
+            System.out.println(currentanswer);
+            System.out.println("Incorrect Guesses: " + inputLine.substring(wordLength));
+            System.out.println("");
             readMessage();
         }
     }
@@ -78,8 +90,5 @@ public class MyClient {
             client.sendMessage(myanswer);
         }
         client.stopConnection();
-        // Thread.sleep(30000);
-        // response = client.sendMessage(".");
-        // System.out.println("Response: " + response);
     }
 }
