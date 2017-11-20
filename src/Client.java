@@ -67,7 +67,7 @@ public class Client {
                 }
                 String guessLetter = userInput.nextLine();
                 guessLetter = guessLetter.toLowerCase();
-                sendMessage("1" + guessLetter);
+                sendMessage(guessLetter.length() + guessLetter);
             }
         }
     }
