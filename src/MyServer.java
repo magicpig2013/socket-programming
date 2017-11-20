@@ -2,18 +2,20 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.concurrent.ThreadLocalRandom;
 
 
 public class MyServer {
-    public static final int PORT = 6666;
     private ServerSocket serverSocket;
 
-    public void start(int port) throws IOException {
+    public void start(int port, String[] dist) throws IOException {
         serverSocket = new ServerSocket(port);
         while (true)
-            new ClientHandler(serverSocket.accept()).start();
+            new ClientHandler(serverSocket.accept(), dist).start();
     }
 
     public void stop() throws IOException {
@@ -22,19 +24,21 @@ public class MyServer {
 
     private static class ClientHandler extends Thread {
         private Socket clientSocket;
+        private String[] dist;
         private DataInputStream in;
         private DataOutputStream out;
 
-        private String answer = "abcd";
-        private String result = "____";
+        private String answer = "";
+        private String result = "";
 
         private Integer msg = 0;
         private String inputLine = "";
         private String incorrectGuess = "";
 
 
-        public ClientHandler(Socket socket) {
+        public ClientHandler(Socket socket, String[] dist) {
             this.clientSocket = socket;
+            this.dist = dist;
         }
 
         public void sendMsg(String message) throws IOException{
@@ -89,6 +93,14 @@ public class MyServer {
             }
         }
 
+        public void gameInit() throws IOException {
+            int randomNum = ThreadLocalRandom.current().nextInt(0, dist.length);
+            answer = dist[randomNum];
+            for (int i = 0; i < answer.length(); i++) {
+                result += '_';
+            }
+        }
+
         public void gameEnd() throws IOException {
             sendMsg("Game Over!");
             in.close();
@@ -98,6 +110,7 @@ public class MyServer {
 
         public void gameHold() throws IOException {
             while (incorrectGuess.length() < 6) {
+                sendMsg("Letter to guess:");
                 readMsg();
                 char letter = inputLine.charAt(0);
                 if (msg != 1 || !((letter >= 'a' && letter <='z') || (letter >= 'A' && letter <='Z'))) {
@@ -132,7 +145,7 @@ public class MyServer {
                 out = new DataOutputStream(clientSocket.getOutputStream());
                 // Ask for game start
                 if (gameStart()){
-                    sendMsg("Letter to guess:");
+                    gameInit();
                     gameHold();
                     gameEnd();
                 }
@@ -143,8 +156,41 @@ public class MyServer {
     }
 
     public static void main(String[] args) throws IOException {
+        String[] dist;
+        int port = 2017;
+        if (args.length == 1) {
+            port = Integer.parseInt(args[0]);
+            dist = new String[15];
+            dist[0] = "you";
+            dist[1] = "see";
+            dist[2] = "sun";
+            dist[3] = "tree";
+            dist[4] = "wind";
+            dist[5] = "love";
+            dist[6] = "water";
+            dist[7] = "trade";
+            dist[8] = "fever";
+            dist[9] = "struct";
+            dist[10] = "string";
+            dist[11] = "object";
+            dist[12] = "integer";
+            dist[13] = "ethurem";
+            dist[14] = "bitcoin";
+        } else {
+            port = Integer.parseInt(args[0]);
+            FileReader fr = new FileReader(args[1]);
+            BufferedReader br = new BufferedReader(fr);
+            String currentLine = br.readLine();
+            String[] parts = currentLine.split(" ");
+            int wordLength = Integer.parseInt(parts[0]);
+            int wordNumber = Integer.parseInt(parts[1]);
+            dist = new String[wordNumber];
+            for (int i = 0; i < wordNumber; i++) {
+                dist[i] = br.readLine();
+            }
+        }
         MyServer server=new MyServer();
-        server.start(PORT);
-        System.out.println("Starting...");
+        server.start(port,dist);
     }
+
 }

@@ -54,6 +54,7 @@ public class MyClient {
             System.out.println("numGuess: " + numGuess);
             System.out.println("Server: " + inputLine.substring(0,wordLength));
             System.out.println("Incorrect guess: " + inputLine.substring(wordLength));
+            readMessage();
         }
     }
 
