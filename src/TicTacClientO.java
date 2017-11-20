@@ -3,7 +3,7 @@ import java.net.Socket;
 
 public class TicTacClientO {
     public static final String IP_ADDR = "127.0.0.1";
-    public static final int PORT = 13579;
+    public static final int PORT = 6666;
     private Socket socket;
     DataInputStream input;
     DataOutputStream out;

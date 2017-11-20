@@ -45,7 +45,7 @@ public class MyClient {
             System.out.println("Server: " + inputLine);
             if (flag == 8 || flag ==9) {
                 connectionEnd = true;
-            } if (flag == 29) {
+            } else if (flag == 29) {
                 readMessage();
             }
         } else {

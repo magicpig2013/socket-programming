@@ -1,21 +1,29 @@
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.BufferedReader;
-import java.io.FileReader;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ThreadLocalRandom;
+import java.net.SocketException;
 
 
 public class MyServer {
     private ServerSocket serverSocket;
+    private int numConnect = 0;
 
     public void start(int port, String[] dist) throws IOException {
         serverSocket = new ServerSocket(port);
-        while (true)
-            new ClientHandler(serverSocket.accept(), dist).start();
+        while (true) {
+            Socket currentSocket = serverSocket.accept();
+            numConnect = Thread.activeCount();
+            if (numConnect < 5) {
+                ClientHandler current = new ClientHandler(currentSocket, dist);
+                System.out.println("Get connected from " + "127.0.0.1" + ":" + port);
+                current.start();
+            } else {
+                ClientDup current = new ClientDup(currentSocket, dist);
+                current.start();
+            }
+            System.out.println("Connect Number: " + Thread.activeCount());
+        }
     }
 
     public void stop() throws IOException {
@@ -52,7 +60,7 @@ public class MyServer {
             String readResult = in.readUTF();
             msg =  Character.getNumericValue(readResult.charAt(0));
             inputLine = readResult.substring(1);
-            System.out.println("read msg:" + msg);
+            // System.out.println("read msg:" + msg);
         }
 
         public void sendResult(String result) throws IOException {
@@ -81,15 +89,20 @@ public class MyServer {
             } else {
                 result = current;
             }
-            System.out.println(result);
+            // System.out.println(result);
         }
 
         public boolean gameStart() throws IOException {
-            while (true) {
-                readMsg();
-                if (msg == 0) {
-                    return true;
+            try{
+                while (true) {
+                    readMsg();
+                    if (msg == 0) {
+                        return true;
+                    }
                 }
+            } catch(SocketException e) {
+                gameEnd();
+                return false;
             }
         }
 
@@ -103,7 +116,6 @@ public class MyServer {
         }
 
         public void gameEnd() throws IOException {
-            sendMsg("Game Over!");
             in.close();
             out.close();
             clientSocket.close();
@@ -113,14 +125,21 @@ public class MyServer {
             while (incorrectGuess.length() < 6) {
                 sendMsg("Letter to guess:");
                 readMsg();
+                if (inputLine.equals("")) {
+                    sendMsg("Error! Please guess a letter.");
+                    continue;
+                }
                 char letter = inputLine.charAt(0);
                 if (msg != 1 || !((letter >= 'a' && letter <='z') || (letter >= 'A' && letter <='Z'))) {
                     sendMsg("Error! Please guess a letter.");
+                } else if (incorrectGuess.indexOf(letter) != -1 || result.indexOf(letter) != -1) {
+                    sendMsg("Error! Letter " + letter + "has been guessed before, please guess another letter.");
                 } else {
                     boolean win = true;
                     generateResult(letter);
                     if (incorrectGuess.length() >= 6) {
                         sendMsg("You Lose :(");
+                        sendMsg("Game Over!");
                         break;
                     }
                     for (int i = 0; i < result.length(); i++) {
@@ -131,26 +150,55 @@ public class MyServer {
                     }
                     if (win) {
                         sendMsg("You Win!");
+                        sendMsg("Game Over!");
                         break;
                     } else {
                         sendResult(result);
                     }
-
                 }
             }
         }
 
-        public void run() {
-            try{
+        public void setStream() {
+            try {
                 in = new DataInputStream(clientSocket.getInputStream());
                 out = new DataOutputStream(clientSocket.getOutputStream());
-                // Ask for game start
+            } catch (EOFException e) {
+                // ... this is fine
+            } catch(IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        public void run(){
+            try{
+                setStream();
                 if (gameStart()){
                     gameInit();
                     gameHold();
-                    gameEnd();
                 }
-            }  catch(IOException e) {
+                gameEnd();
+            } catch (EOFException e) {
+                // ... this is fine
+            } catch(IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private static class ClientDup extends ClientHandler {
+        public ClientDup(Socket socket, String[] dist){super(socket,dist);}
+        public void run(){
+            try{
+                setStream();
+                // Ask for game start
+                if (gameStart()){
+                    sendMsg("Server overloaded. Try again after one minute.");
+                }
+                gameEnd();
+            } catch (EOFException e) {
+                // ... this is fine
+            } catch(IOException e) {
                 e.printStackTrace();
             }
         }
@@ -179,7 +227,7 @@ public class MyServer {
             dist[14] = "bitcoin";
         } else {
             port = Integer.parseInt(args[0]);
-            FileReader fr = new FileReader(args[1]);
+            FileReader fr = new FileReader("src/"+args[1]);
             BufferedReader br = new BufferedReader(fr);
             String currentLine = br.readLine();
             String[] parts = currentLine.split(" ");
