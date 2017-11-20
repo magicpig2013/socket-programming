@@ -14,7 +14,7 @@ public class MyServer {
         while (true) {
             Socket currentSocket = serverSocket.accept();
             numConnect = Thread.activeCount();
-            if (numConnect < 5) {
+            if (numConnect < 4) {
                 ClientHandler current = new ClientHandler(currentSocket, dist);
                 System.out.println("Get connected from " + "127.0.0.1" + ":" + port);
                 current.start();
@@ -227,7 +227,7 @@ public class MyServer {
             dist[14] = "bitcoin";
         } else {
             port = Integer.parseInt(args[0]);
-            FileReader fr = new FileReader("src/"+args[1]);
+            FileReader fr = new FileReader(args[1]);
             BufferedReader br = new BufferedReader(fr);
             String currentLine = br.readLine();
             String[] parts = currentLine.split(" ");
