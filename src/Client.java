@@ -89,21 +89,18 @@ public class Client {
                     currentanswer += guessingResult.charAt(i);
                 }
             }
-            // System.out.println("");
             System.out.println(currentanswer);
             System.out.println("Incorrect Guesses:" + errorTracking + "\n");
-            // System.out.println("");
             readMessage();
         } else {
             String data = message.substring(1, realMsgFlag + 1);
             System.out.println(data);
-            // System.out.println("");
-            if (realMsgFlag == 8 || realMsgFlag == 11) {
+            if (realMsgFlag == 8 || realMsgFlag == 11) {// lose or win
                 connectionEnd = true;
                 readMessage();
-            } else if (realMsgFlag == 29 || realMsgFlag == 69) {
+            } else if (realMsgFlag == 29 || realMsgFlag == 69) { // wrong input
                 readMessage();
-            } else if (realMsgFlag == 46) {
+            } else if (realMsgFlag == 46) {// overload
                 connectionEnd = true;
             }
         }

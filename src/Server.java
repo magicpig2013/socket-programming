@@ -4,56 +4,37 @@ import java.net.Socket;
 import java.util.concurrent.ThreadLocalRandom;
 import java.net.SocketException;
 
+
 public class Server {
-
     private ServerSocket serverSocket;
+    private int numConnect = 0;
 
-    public static void main(String[] args) throws IOException {
-        String[] dist;
-        int port;
-        if (args.length == 1) {
-            port = Integer.parseInt(args[0]);
-            dist = new String[15];
-            dist[0] = "you";
-            dist[1] = "see";
-            dist[2] = "sun";
-            dist[3] = "tree";
-            dist[4] = "wind";
-            dist[5] = "love";
-            dist[6] = "water";
-            dist[7] = "trade";
-            dist[8] = "fever";
-            dist[9] = "struct";
-            dist[10] = "string";
-            dist[11] = "object";
-            dist[12] = "integer";
-            dist[13] = "ethurem";
-            dist[14] = "bitcoin";
-        } else {
-            port = Integer.parseInt(args[0]);
-            FileReader fr = new FileReader("src/"+args[1]);
-            BufferedReader br = new BufferedReader(fr);
-            String currentLine = br.readLine();
-            String[] parts = currentLine.split(" ");
-            int wordLength = Integer.parseInt(parts[0]);
-            int wordNumber = Integer.parseInt(parts[1]);
-            dist = new String[wordNumber];
-            for (int i = 0; i < wordNumber; i++) {
-                dist[i] = br.readLine();
+    public void start(int port, String[] dist) throws IOException {
+        serverSocket = new ServerSocket(port);
+        while (true) {
+            Socket currentSocket = serverSocket.accept();
+            numConnect = Thread.activeCount();
+            if (numConnect < 4) {
+                ClientHandler current = new ClientHandler(currentSocket, dist);
+                System.out.println("Get connected from " + "127.0.0.1" + ":" + port);
+                current.start();
+            } else {
+                ClientDup current = new ClientDup(currentSocket, dist);
+                current.start();
             }
+            System.out.println("Connect Number: " + Thread.activeCount());
         }
-        Server server=new Server();
-        server.start(port,dist);
     }
 
-}
+    public void stop() throws IOException {
+        serverSocket.close();
+    }
 
-class HangmanGame {
-    private static class Player extends Thread {
-        private Player opponent;
-        private Socket playerSocket;
-        private DataOutputStream out;
+    private static class ClientHandler extends Thread {
+        private Socket clientSocket;
+        private String[] dist;
         private DataInputStream in;
+        private DataOutputStream out;
 
         private String answer = "";
         private String result = "";
@@ -62,8 +43,10 @@ class HangmanGame {
         private String inputLine = "";
         private String incorrectGuess = "";
 
-        public Player(Socket socket) {
-            this.playerSocket = socket;
+
+        public ClientHandler(Socket socket, String[] dist) {
+            this.clientSocket = socket;
+            this.dist = dist;
         }
 
         public void sendMsg(String message) throws IOException{
@@ -108,5 +91,157 @@ class HangmanGame {
             }
             // System.out.println(result);
         }
+
+        public boolean gameStart() throws IOException {
+            try{
+                while (true) {
+                    readMsg();
+                    if (msg == 0) {
+                        return true;
+                    }
+                }
+            } catch(SocketException e) {
+                gameEnd();
+                return false;
+            }
+        }
+
+        public void gameInit() throws IOException {
+            int randomNum = ThreadLocalRandom.current().nextInt(0, dist.length);
+            answer = dist[randomNum];
+            for (int i = 0; i < answer.length(); i++) {
+                result += '_';
+            }
+            sendResult(result);
+        }
+
+        public void gameEnd() throws IOException {
+            in.close();
+            out.close();
+            clientSocket.close();
+        }
+
+        public void gameHold() throws IOException {
+            while (incorrectGuess.length() < 6) {
+                sendMsg("Letter to guess:");
+                readMsg();
+                if (inputLine.equals("")) {
+                    sendMsg("Error! Please guess a letter.");
+                    continue;
+                }
+                char letter = inputLine.charAt(0);
+                if (msg != 1 || !((letter >= 'a' && letter <='z') || (letter >= 'A' && letter <='Z'))) {
+                    sendMsg("Error! Please guess a letter.");
+                } else if (incorrectGuess.indexOf(letter) != -1 || result.indexOf(letter) != -1) {
+                    sendMsg("Error! Letter " + letter + "has been guessed before, please guess another letter.");
+                } else {
+                    boolean win = true;
+                    generateResult(letter);
+                    if (incorrectGuess.length() >= 6) {
+                        sendResult(result);
+                        sendMsg("You Lose :(");
+                        sendMsg("Game Over!");
+                        break;
+                    }
+                    for (int i = 0; i < result.length(); i++) {
+                        if (result.charAt(i) == '_') {
+                            win = false;
+                            break;
+                        }
+                    }
+                    if (win) {
+                        sendResult(result);
+                        sendMsg("You Win!");
+                        sendMsg("Game Over!");
+                        break;
+                    } else {
+                        sendResult(result);
+                    }
+                }
+            }
+        }
+
+        public void setStream() {
+            try {
+                in = new DataInputStream(clientSocket.getInputStream());
+                out = new DataOutputStream(clientSocket.getOutputStream());
+            } catch (EOFException e) {
+                // ... this is fine
+            } catch(IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        public void run(){
+            try{
+                setStream();
+                if (gameStart()){
+                    gameInit();
+                    gameHold();
+                }
+                gameEnd();
+            } catch (EOFException e) {
+                // ... this is fine
+            } catch(IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
+
+    private static class ClientDup extends ClientHandler {
+        public ClientDup(Socket socket, String[] dist){super(socket,dist);}
+        public void run(){
+            try{
+                setStream();
+                // Ask for game start
+                if (gameStart()){
+                    sendMsg("Server overloaded. Try again after one minute.");
+                }
+                gameEnd();
+            } catch (EOFException e) {
+                // ... this is fine
+            } catch(IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        String[] dist;
+        int port = 2017;
+        if (args.length == 1) {
+            port = Integer.parseInt(args[0]);
+            dist = new String[15];
+            dist[0] = "you";
+            dist[1] = "see";
+            dist[2] = "sun";
+            dist[3] = "tree";
+            dist[4] = "wind";
+            dist[5] = "love";
+            dist[6] = "water";
+            dist[7] = "trade";
+            dist[8] = "fever";
+            dist[9] = "struct";
+            dist[10] = "string";
+            dist[11] = "object";
+            dist[12] = "integer";
+            dist[13] = "ethurem";
+            dist[14] = "bitcoin";
+        } else {
+            port = Integer.parseInt(args[0]);
+            FileReader fr = new FileReader(args[1]);
+            BufferedReader br = new BufferedReader(fr);
+            String currentLine = br.readLine();
+            String[] parts = currentLine.split(" ");
+            int wordLength = Integer.parseInt(parts[0]);
+            int wordNumber = Integer.parseInt(parts[1]);
+            dist = new String[wordNumber];
+            for (int i = 0; i < wordNumber; i++) {
+                dist[i] = br.readLine();
+            }
+        }
+        Server server=new Server();
+        server.start(port,dist);
+    }
+
 }
