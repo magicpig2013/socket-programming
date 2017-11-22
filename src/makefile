@@ -1,4 +1,5 @@
 JC = javac
+RM = rm -rf
 .SUFFIXES: .java .class
 .java.class:
 				$(JC) $*.java
