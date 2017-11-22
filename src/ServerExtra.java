@@ -56,33 +56,29 @@ public class ServerExtra {
         while (true) {
             HangmanGame game = new HangmanGame(dist);
             HangmanGame.Player playerOne = game.new Player(serverSocket.accept());
+            playerOne.setPlayerName("player 1");
             playerOne.start();
-            // Check whether the player choose single mode or double mode
-            while (true) {
-                if (game.playMode ==1 ) {
-
-                    break;
-                } else if (game.playMode == 2) {
-                    break;
-                }
-            }
             HangmanGame.Player playerTwo = game.new Player(serverSocket.accept());
+            playerTwo.setPlayerName("player 2");
             playerOne.setOpponent(playerTwo);
             playerTwo.setOpponent(playerOne);
             game.currentPlayer = playerOne;
-            playerOne.start();
             playerTwo.start();
         }
     }
-
 }
 
-public class HangmanGame {
+class HangmanGame {
     Player currentPlayer;
     int playMode;
     String[] dist;
     String answer = "";
     String result = "";
+    private String incorrectGuess = "";
+    private boolean changeFlag = false;
+    // When one client sent result, reverse this flag
+    // If only one client has sent result, then this flag will be true
+    private boolean resultSentFlag = false;
 
     public HangmanGame(String[] dist) {
         this.dist = dist;
@@ -94,23 +90,75 @@ public class HangmanGame {
         }
     }
 
-    public void setPlayMode(int mode) {
-        playMode = mode;
+    public void sendWel(Player player) throws IOException {
+        if (player == currentPlayer) {
+            player.sendMsg("It's your turn"); // length = 14
+        } else {
+            player.sendMsg("Waitting for " + player.opponent.name + " to guess");// length = 29
+        }
     }
 
+    public synchronized void playerGuess(Player player) throws IOException{
+        if (player == currentPlayer) {
+            while(true) {
+                player.sendMsg("Letter to guess: ");
+                player.readMsg(); // read the client letter
+                if (player.inputLine.equals("")) {
+                    player.sendMsg("Error! Please guess a letter.");
+                    continue;
+                }
+                char letter = player.inputLine.charAt(0);
+                if (player.msg != 1 || !((letter >= 'a' && letter <='z') || (letter >= 'A' && letter <='Z'))) {
+                    player.sendMsg("Error! Please guess a letter.");
+                } else if (incorrectGuess.indexOf(letter) != -1 || result.indexOf(letter) != -1) {
+                    player.sendMsg("Error! Letter " + letter + "has been guessed before, please guess another letter.");
+                } else {
+                    player.generateResult(letter); // correct input. Now change the result.
+                    changeFlag = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    public synchronized void playerSendResult(Player player) throws IOException{
+        boolean win = true;
+        player.sendResult(result);
+        resultSentFlag = !resultSentFlag;
+        if (incorrectGuess.length() >= 6) {
+            player.sendMsg("You Lose :(");
+            player.sendMsg("Game Over!");
+            return;
+        }
+        for (int i = 0; i < result.length(); i++) {
+            if (result.charAt(i) == '_') {
+                win = false;
+                break;
+            }
+        }
+        if (win) {
+            player.sendMsg("You Win!");
+            player.sendMsg("Game Over!");
+        }
+    }
+
+    public synchronized void takeTurn() {
+        if (changeFlag && !resultSentFlag) {
+            currentPlayer = currentPlayer.opponent;
+            changeFlag = false;
+        }
+    }
 
     class Player extends Thread {
-        private Player opponent = null;
+        public Player opponent = null;
+        public String name = "";
+
         private Socket playerSocket;
         private DataOutputStream out;
         private DataInputStream in;
 
-        private String answer = "";
-        private String result = "";
-
-        private Integer msg = 0;
+        private int msg = 0;
         private String inputLine = "";
-        private String incorrectGuess = "";
 
         public Player(Socket socket) {
             this.playerSocket = socket;
@@ -118,6 +166,31 @@ public class HangmanGame {
 
         public void setOpponent(Player opponent) {
             this.opponent = opponent;
+        }
+
+        public void setPlayerName(String playerName) {
+            this.name = playerName;
+        }
+
+        public void opponentChoice(char letter) {
+            while (incorrectGuess.length() < 6) {
+
+            }
+        }
+
+        public void run(){
+            try{
+                setStream();
+                if (gameStart()) {
+                    gameInit();
+                    gameHold();
+                }
+                playerEnd();
+            } catch (EOFException e) {
+                // ... this is fine
+            } catch(IOException e) {
+                e.printStackTrace();
+            }
         }
 
         public void setStream() {
@@ -131,19 +204,46 @@ public class HangmanGame {
             }
         }
 
-        public int gameStart() throws IOException {
+        public boolean gameStart() throws IOException {
             try{
                 while (true) {
                     readMsg();
                     if (msg == 0) {
-                        return 1;
-                    } else if (msg == 2) {
-                        return 2;
+                        return true;
                     }
                 }
             } catch(SocketException e) {
                 playerEnd();
-                return 0;
+                return false;
+            }
+        }
+
+        public void gameInit() throws IOException {
+            if (opponent == null) {
+                sendMsg("Waitting for the other player...");
+                while(true) {
+                    if (opponent != null) {
+                        sendMsg("Game start ^_^");
+                        break;
+                    }
+                }
+            } else {
+                sendMsg("Both players is connected");
+                sendMsg("Game start ^_^");
+            }
+        }
+
+        public void gameHold() throws IOException {
+            sendWel(this);
+            while (incorrectGuess.length() < 6) {
+                playerGuess(this);
+                while(true) {
+                    if (changeFlag = true) {
+                        playerSendResult(this);
+                        break;
+                    }
+                }
+                takeTurn();
             }
         }
 
@@ -195,21 +295,6 @@ public class HangmanGame {
             }
         }
 
-        public void run(){
-            try{
-                setStream();
-                if (gameStart() == 1) {
-                    gameInit();
-                    gameHold();
-                } else if (gameStart() == 2) {
 
-                }
-                playerEnd();
-            } catch (EOFException e) {
-                // ... this is fine
-            } catch(IOException e) {
-                e.printStackTrace();
-            }
-        }
     }
 }

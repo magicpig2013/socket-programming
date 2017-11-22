@@ -7,8 +7,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Scanner;
 
-public class Client {
-
+public class ClientExtra {
     private DataOutputStream output;//sending message to server
     private DataInputStream input;// receiving message from server
     private String serverIP;
@@ -18,14 +17,14 @@ public class Client {
     private boolean connectionEnd = false;
 
 
-    public Client(String host) {
+    public ClientExtra(String host) {
         serverIP = host;
     }
 
     public static void main(String args[]) {
         String s = args[0];//sever IP
         portNumber = Integer.parseInt(args[1]);
-        Client client = new Client(s);//local host
+        ClientExtra client = new ClientExtra(s);//local host
         client.startRunning();
     }
 
@@ -58,8 +57,6 @@ public class Client {
         if (option.equals("y")) {
             //send empty message
             sendMessage("0");
-            readMessage(); // read "Waitting for the other player!" or "Both players is connected"
-            readMessage(); // read "Game start ^_^"
             while (!connectionEnd) {
                 readMessage();
                 if (connectionEnd) {
@@ -98,10 +95,11 @@ public class Client {
             if (realMsgFlag == 8 || realMsgFlag == 11) {// lose or win
                 connectionEnd = true;
                 readMessage();
-            } else if (realMsgFlag == 29 || realMsgFlag == 69) { // wrong input
-                readMessage();
+            } else if (realMsgFlag == 17) { // letter to guess
             } else if (realMsgFlag == 46) {// overload
                 connectionEnd = true;
+            } else {
+                readMessage();
             }
         }
     }
