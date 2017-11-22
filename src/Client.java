@@ -7,6 +7,8 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Scanner;
 
+
+
 public class Client {
 
     private DataOutputStream output;//sending message to server
@@ -58,8 +60,6 @@ public class Client {
         if (option.equals("y")) {
             //send empty message
             sendMessage("0");
-            readMessage(); // read "Waitting for the other player!" or "Both players is connected"
-            readMessage(); // read "Game start ^_^"
             while (!connectionEnd) {
                 readMessage();
                 if (connectionEnd) {

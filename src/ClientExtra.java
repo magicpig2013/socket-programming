@@ -52,20 +52,14 @@ public class ClientExtra {
     private void whileChatting() throws IOException {
         //ask user to start the game
         Scanner userInput = new Scanner(System.in);
-        System.out.println("Ready to start game? (y/n): ");
-        String option = userInput.nextLine();
-        if (option.equals("y")) {
-            //send empty message
-            sendMessage("0");
-            while (!connectionEnd) {
-                readMessage();
-                if (connectionEnd) {
-                    break;
-                }
-                String guessLetter = userInput.nextLine();
-                guessLetter = guessLetter.toLowerCase();
-                sendMessage(guessLetter.length() + guessLetter);
+        while (!connectionEnd) {
+            readMessage();
+            if (connectionEnd) {
+                break;
             }
+            String guessLetter = userInput.nextLine();
+            guessLetter = guessLetter.toLowerCase();
+            sendMessage(guessLetter.length() + guessLetter);
         }
     }
 

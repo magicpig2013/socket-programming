@@ -55,14 +55,12 @@ public class ServerExtra {
         //keep listening the requests
         while (true) {
             HangmanGame game = new HangmanGame(dist);
-            HangmanGame.Player playerOne = game.new Player(serverSocket.accept());
-            playerOne.setPlayerName("player 1");
-            playerOne.start();
-            HangmanGame.Player playerTwo = game.new Player(serverSocket.accept());
-            playerTwo.setPlayerName("player 2");
+            HangmanGame.Player playerOne = game.new Player(serverSocket.accept(),"player 1");
+            HangmanGame.Player playerTwo = game.new Player(serverSocket.accept(),"player 2");
             playerOne.setOpponent(playerTwo);
             playerTwo.setOpponent(playerOne);
             game.currentPlayer = playerOne;
+            playerOne.start();
             playerTwo.start();
         }
     }
@@ -98,6 +96,24 @@ class HangmanGame {
         }
     }
 
+    public void gameInit(Player player) throws IOException {
+//        if (player.opponent == null) {
+//            player.sendMsg("You are " + player.name);
+//            player.sendMsg("Waitting for the other player...");
+//            while(true) {
+//                if (player.opponent != null) {
+//                    player.sendMsg("Game start ^_^");
+//                    break;
+//                }
+//            }
+//        } else {
+        player.opponent.setOpponent(player);
+        player.sendMsg("You are " + player.name);
+        player.sendMsg("Both players is connected");
+        player.sendMsg("Game start ^_^");
+//        }
+    }
+
     public synchronized void playerGuess(Player player) throws IOException{
         if (player == currentPlayer) {
             while(true) {
@@ -118,10 +134,11 @@ class HangmanGame {
                     break;
                 }
             }
+            currentPlayer = currentPlayer.opponent;
         }
     }
 
-    public synchronized void playerSendResult(Player player) throws IOException{
+    public void playerSendResult(Player player) throws IOException{
         boolean win = true;
         player.sendResult(result);
         resultSentFlag = !resultSentFlag;
@@ -142,9 +159,8 @@ class HangmanGame {
         }
     }
 
-    public synchronized void takeTurn() {
+    public void takeTurn() {
         if (changeFlag && !resultSentFlag) {
-            currentPlayer = currentPlayer.opponent;
             changeFlag = false;
         }
     }
@@ -160,8 +176,9 @@ class HangmanGame {
         private int msg = 0;
         private String inputLine = "";
 
-        public Player(Socket socket) {
+        public Player(Socket socket, String name) {
             this.playerSocket = socket;
+            this.name = name;
         }
 
         public void setOpponent(Player opponent) {
@@ -181,10 +198,8 @@ class HangmanGame {
         public void run(){
             try{
                 setStream();
-                if (gameStart()) {
-                    gameInit();
-                    gameHold();
-                }
+                gameInit(this);
+                gameHold();
                 playerEnd();
             } catch (EOFException e) {
                 // ... this is fine
@@ -218,27 +233,12 @@ class HangmanGame {
             }
         }
 
-        public void gameInit() throws IOException {
-            if (opponent == null) {
-                sendMsg("Waitting for the other player...");
-                while(true) {
-                    if (opponent != null) {
-                        sendMsg("Game start ^_^");
-                        break;
-                    }
-                }
-            } else {
-                sendMsg("Both players is connected");
-                sendMsg("Game start ^_^");
-            }
-        }
-
         public void gameHold() throws IOException {
             sendWel(this);
             while (incorrectGuess.length() < 6) {
                 playerGuess(this);
                 while(true) {
-                    if (changeFlag = true) {
+                    if (changeFlag == true) {
                         playerSendResult(this);
                         break;
                     }
