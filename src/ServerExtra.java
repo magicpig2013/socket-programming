@@ -92,30 +92,28 @@ class HangmanGame {
         if (player == currentPlayer) {
             player.sendMsg("It's your turn"); // length = 14
         } else {
-            player.sendMsg("Waitting for " + player.opponent.name + " to guess");// length = 29
+            player.sendMsg("Waiting for " + player.opponent.name + " to guess");// length = 29
         }
     }
 
     public void gameInit(Player player) throws IOException {
-//        if (player.opponent == null) {
-//            player.sendMsg("You are " + player.name);
-//            player.sendMsg("Waitting for the other player...");
-//            while(true) {
-//                if (player.opponent != null) {
-//                    player.sendMsg("Game start ^_^");
-//                    break;
-//                }
-//            }
-//        } else {
-        player.opponent.setOpponent(player);
+        if (player.opponent == null) {
+            player.sendMsg("Waiting for the other player...");
+            while(true) {
+                if (player.opponent != null) {
+                    break;
+                }
+            }
+        }
         player.sendMsg("You are " + player.name);
         player.sendMsg("Both players is connected");
         player.sendMsg("Game start ^_^");
-//        }
     }
 
     public synchronized void playerGuess(Player player) throws IOException{
         if (player == currentPlayer) {
+            player.opponent.sendMsg("Waiting for " + player.name + " to guess");
+            player.sendMsg("It's your turn");
             while(true) {
                 player.sendMsg("Letter to guess: ");
                 player.readMsg(); // read the client letter
@@ -134,6 +132,8 @@ class HangmanGame {
                     break;
                 }
             }
+            playerSendResult(player);
+            playerSendResult(player.opponent);
             currentPlayer = currentPlayer.opponent;
         }
     }
@@ -141,7 +141,7 @@ class HangmanGame {
     public void playerSendResult(Player player) throws IOException{
         boolean win = true;
         player.sendResult(result);
-        resultSentFlag = !resultSentFlag;
+        //resultSentFlag = !resultSentFlag;
         if (incorrectGuess.length() >= 6) {
             player.sendMsg("You Lose :(");
             player.sendMsg("Game Over!");
@@ -234,16 +234,16 @@ class HangmanGame {
         }
 
         public void gameHold() throws IOException {
-            sendWel(this);
+//            sendWel(this);
             while (incorrectGuess.length() < 6) {
                 playerGuess(this);
-                while(true) {
-                    if (changeFlag == true) {
-                        playerSendResult(this);
-                        break;
-                    }
-                }
-                takeTurn();
+//                while(true) {
+//                    if (changeFlag == true) {
+//                        playerSendResult(this);
+//                        break;
+//                    }
+//                }
+//                takeTurn();
             }
         }
 

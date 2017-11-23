@@ -64,6 +64,9 @@ public class ClientExtra {
     }
 
     private void readMessage() throws IOException{
+        if (connectionEnd) {
+            return;
+        }
         message = input.readUTF();
         int realMsgFlag= (int)message.charAt(0);
         if(realMsgFlag == 126) {//msgFlag == 0
