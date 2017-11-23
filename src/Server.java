@@ -133,7 +133,7 @@ public class Server {
                 if (msg != 1 || !((letter >= 'a' && letter <='z') || (letter >= 'A' && letter <='Z'))) {
                     sendMsg("Error! Please guess a letter.");
                 } else if (incorrectGuess.indexOf(letter) != -1 || result.indexOf(letter) != -1) {
-                    sendMsg("Error! Letter " + letter + "has been guessed before, please guess another letter.");
+                    sendMsg("Error! Letter " + letter + " has been guessed before, please guess another letter.");
                 } else {
                     boolean win = true;
                     generateResult(letter);
