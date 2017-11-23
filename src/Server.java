@@ -22,7 +22,7 @@ public class Server {
                 ClientDup current = new ClientDup(currentSocket, dist);
                 current.start();
             }
-            System.out.println("Connect Number: " + Thread.activeCount());
+            //System.out.println("Connect Number: " + Thread.activeCount());
         }
     }
 
